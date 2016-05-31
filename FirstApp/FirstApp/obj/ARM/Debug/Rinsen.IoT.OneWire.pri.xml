@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<PriInfo>
+	<ResourceMap name="Rinsen.IoT.OneWire" version="1.0" primary="true">
+		<Qualifiers/>
+		<ResourceMapSubtree name="Files">
+			<ResourceMapSubtree name="Rinsen.IoT.OneWire">
+				<ResourceMapSubtree name="Properties">
+					<NamedResource name="Rinsen.IoT.OneWire.rd.xml" uri="ms-resource://Rinsen.IoT.OneWire/Files/Rinsen.IoT.OneWire/Properties/Rinsen.IoT.OneWire.rd.xml">
+						<Candidate type="Path">
+							<Value>Rinsen.IoT.OneWire\Properties\Rinsen.IoT.OneWire.rd.xml</Value>
+						</Candidate>
+					</NamedResource>
+				</ResourceMapSubtree>
+			</ResourceMapSubtree>
+		</ResourceMapSubtree>
+	</ResourceMap>
+</PriInfo>

@@ -1,0 +1,1 @@
+C:\github_repos\mikepeterson\RaspberryPi\FirstApp\FirstApp\FirstApp.csproj;arm

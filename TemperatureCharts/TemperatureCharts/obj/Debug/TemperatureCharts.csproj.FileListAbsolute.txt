@@ -1,0 +1,17 @@
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\TemperatureCharts.exe.config
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\TemperatureCharts.exe
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\TemperatureCharts.pdb
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\EntityFramework.dll
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\EntityFramework.SqlServer.dll
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\System.Data.SQLite.dll
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\System.Data.SQLite.EF6.dll
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\System.Data.SQLite.Linq.dll
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\EntityFramework.xml
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\EntityFramework.SqlServer.xml
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\bin\Debug\System.Data.SQLite.xml
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\obj\Debug\TemperatureCharts.csprojResolveAssemblyReference.cache
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\obj\Debug\TemperatureCharts.Form1.resources
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\obj\Debug\TemperatureCharts.Properties.Resources.resources
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\obj\Debug\TemperatureCharts.csproj.GenerateResource.Cache
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\obj\Debug\TemperatureCharts.exe
+C:\github_repos\mikepeterson\RaspberryPi\TemperatureCharts\TemperatureCharts\obj\Debug\TemperatureCharts.pdb
