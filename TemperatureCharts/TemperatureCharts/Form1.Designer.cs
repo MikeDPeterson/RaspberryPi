@@ -29,13 +29,14 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea3 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea4 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series3 = new System.Windows.Forms.DataVisualization.Charting.Series();
-            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint3 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(42520.713888888888D, "75.45,0");
-            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint4 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(42520.714583333334D, "94.55,0");
-            System.Windows.Forms.DataVisualization.Charting.Series series4 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint1 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(42520.713888888888D, "75.45,0");
+            System.Windows.Forms.DataVisualization.Charting.DataPoint dataPoint2 = new System.Windows.Forms.DataVisualization.Charting.DataPoint(42520.714583333334D, "94.55,0");
+            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.temperatureChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.tmrUpdateChart = new System.Windows.Forms.Timer(this.components);
             this.tmrBackupDatabase = new System.Windows.Forms.Timer(this.components);
@@ -64,47 +65,46 @@
             this.temperatureChart.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            chartArea3.AlignWithChartArea = "BarChartArea";
-            chartArea3.AxisX.TitleFont = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            chartArea3.AxisY.IntervalAutoMode = System.Windows.Forms.DataVisualization.Charting.IntervalAutoMode.VariableCount;
-            chartArea3.AxisY.TitleFont = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            chartArea3.Name = "LinesChartArea";
-            chartArea4.AlignWithChartArea = "LinesChartArea";
-            chartArea4.Name = "BarChartArea";
-            this.temperatureChart.ChartAreas.Add(chartArea3);
-            this.temperatureChart.ChartAreas.Add(chartArea4);
-            legend2.Name = "Sensors";
-            legend2.TitleFont = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.temperatureChart.Legends.Add(legend2);
+            chartArea1.AlignWithChartArea = "BarChartArea";
+            chartArea1.AxisX.TitleFont = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            chartArea1.AxisY.IntervalAutoMode = System.Windows.Forms.DataVisualization.Charting.IntervalAutoMode.VariableCount;
+            chartArea1.AxisY.TitleFont = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            chartArea1.Name = "LinesChartArea";
+            chartArea2.AlignWithChartArea = "LinesChartArea";
+            chartArea2.Name = "BarChartArea";
+            this.temperatureChart.ChartAreas.Add(chartArea1);
+            this.temperatureChart.ChartAreas.Add(chartArea2);
+            legend1.Name = "Sensors";
+            legend1.TitleFont = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.temperatureChart.Legends.Add(legend1);
             this.temperatureChart.Location = new System.Drawing.Point(0, 138);
             this.temperatureChart.Margin = new System.Windows.Forms.Padding(0);
             this.temperatureChart.Name = "temperatureChart";
             this.temperatureChart.Palette = System.Windows.Forms.DataVisualization.Charting.ChartColorPalette.SemiTransparent;
-            series3.ChartArea = "LinesChartArea";
-            series3.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
-            series3.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            series3.IsValueShownAsLabel = true;
-            series3.IsXValueIndexed = true;
-            series3.Label = "#VALY F @ #VALX{h:mm tt }";
-            series3.Legend = "Sensors";
-            series3.Name = "Sensor1";
-            dataPoint3.IsVisibleInLegend = false;
-            dataPoint4.IsVisibleInLegend = false;
-            series3.Points.Add(dataPoint3);
-            series3.Points.Add(dataPoint4);
-            series3.XValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.DateTime;
-            series3.YValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.Double;
-            series4.ChartArea = "BarChartArea";
-            series4.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.StackedColumn;
-            series4.Legend = "Sensors";
-            series4.Name = "Series2";
-            series4.XValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.Date;
-            this.temperatureChart.Series.Add(series3);
-            this.temperatureChart.Series.Add(series4);
+            series1.ChartArea = "LinesChartArea";
+            series1.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
+            series1.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            series1.IsValueShownAsLabel = true;
+            series1.IsXValueIndexed = true;
+            series1.Label = "#VALY F @ #VALX{h:mm tt }";
+            series1.Legend = "Sensors";
+            series1.Name = "Sensor1";
+            dataPoint1.IsVisibleInLegend = false;
+            dataPoint2.IsVisibleInLegend = false;
+            series1.Points.Add(dataPoint1);
+            series1.Points.Add(dataPoint2);
+            series1.XValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.DateTime;
+            series1.YValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.Double;
+            series2.ChartArea = "BarChartArea";
+            series2.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.StackedColumn;
+            series2.Legend = "Sensors";
+            series2.Name = "Series2";
+            series2.XValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.Date;
+            this.temperatureChart.Series.Add(series1);
+            this.temperatureChart.Series.Add(series2);
             this.temperatureChart.Size = new System.Drawing.Size(1018, 491);
             this.temperatureChart.TabIndex = 0;
             this.temperatureChart.GetToolTipText += new System.EventHandler<System.Windows.Forms.DataVisualization.Charting.ToolTipEventArgs>(this.temperatureChart_GetToolTipText);
-            this.temperatureChart.Click += new System.EventHandler(this.temperatureChart_Click);
             // 
             // tmrUpdateChart
             // 
@@ -146,7 +146,6 @@
             this.tbHours.TabIndex = 5;
             this.tbHours.Text = "24";
             this.tbHours.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
-            this.tbHours.TextChanged += new System.EventHandler(this.tbHours_TextChanged);
             // 
             // rbLastX
             // 
@@ -179,7 +178,7 @@
             this.groupBox2.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.groupBox2.Location = new System.Drawing.Point(262, 12);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(239, 110);
+            this.groupBox2.Size = new System.Drawing.Size(239, 84);
             this.groupBox2.TabIndex = 4;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Chart";
@@ -201,7 +200,6 @@
             this.cboTempChartType.Name = "cboTempChartType";
             this.cboTempChartType.Size = new System.Drawing.Size(208, 21);
             this.cboTempChartType.TabIndex = 0;
-            this.cboTempChartType.SelectedIndexChanged += new System.EventHandler(this.cboChartType_SelectedIndexChanged);
             // 
             // lblStatus
             // 
@@ -243,9 +241,10 @@
             // 
             // btnRefresh
             // 
-            this.btnRefresh.Location = new System.Drawing.Point(948, 98);
+            this.btnRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnRefresh.Location = new System.Drawing.Point(913, 8);
             this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(57, 24);
+            this.btnRefresh.Size = new System.Drawing.Size(92, 40);
             this.btnRefresh.TabIndex = 8;
             this.btnRefresh.Text = "Refresh";
             this.btnRefresh.UseVisualStyleBackColor = true;
@@ -260,7 +259,6 @@
             this.cbPowerUsageOffPeak.TabIndex = 9;
             this.cbPowerUsageOffPeak.Text = "Show OffPeak Power Usage";
             this.cbPowerUsageOffPeak.UseVisualStyleBackColor = true;
-            this.cbPowerUsageOffPeak.CheckedChanged += new System.EventHandler(this.cbPowerUsageOffPeak_CheckedChanged);
             // 
             // cbTotalPowerUsage
             // 
@@ -291,11 +289,11 @@
             this.Controls.Add(this.temperatureChart);
             this.DoubleBuffered = true;
             this.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "frmMain";
             this.ShowIcon = false;
             this.Text = "Charts";
             this.Load += new System.EventHandler(this.Form1_Load);
-            this.Shown += new System.EventHandler(this.frmMain_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.temperatureChart)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();

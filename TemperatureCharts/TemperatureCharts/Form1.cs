@@ -28,6 +28,8 @@ namespace TemperatureCharts
         private Dictionary<string, System.Drawing.Color> SensorColors = null;
         private ToolTip chartToolTip = new ToolTip();
         private List<TemperatureData> allTemperatureDataList = new List<TemperatureData>();
+        List<PowerUseData> powerUseDataList = null;
+        
         private int lastTemperatureDataId = 0;
 
         /// <summary>
@@ -85,15 +87,12 @@ namespace TemperatureCharts
         private void UpdateChart()
         {
             tmrUpdateChart.Enabled = false;
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            
+
             var startDateTime = DateTime.Now.AddYears( -10 );
 
             using ( SQLiteConnection conn = new SQLiteConnection( "Data Source=P:\\temperatureDatabase.db;Version=3;Read Only=True" ) )
             {
                 conn.Open();
-
-                Debug.WriteLine( "SELECT0.. " + stopwatch.ElapsedMilliseconds );
 
                 using ( SQLiteCommand cmd = new SQLiteCommand( "SELECT Id, tdatetime, sensorId, temperature FROM temperatureLog WHERE id > @param2 ORDER BY Id", conn ) )
                 {
@@ -107,12 +106,11 @@ namespace TemperatureCharts
 
                     //cmd.Parameters.Add( new SQLiteParameter( "@param1", System.Data.DbType.DateTime ) { Value = startDateTime.ToUniversalTime() } );
                     cmd.Parameters.Add( new SQLiteParameter( "@param2", System.Data.DbType.Int32 ) { Value = this.lastTemperatureDataId } );
-                    using ( SQLiteDataReader sqlReader = cmd.ExecuteReader( System.Data.CommandBehavior.SingleResult  ) )
+                    using ( SQLiteDataReader sqlReader = cmd.ExecuteReader( System.Data.CommandBehavior.SingleResult ) )
                     {
-                        Debug.WriteLine( "SELECT1.. " + stopwatch.ElapsedMilliseconds );
                         while ( sqlReader.Read() )
                         {
-                            lastTemperatureDataId = Convert.ToInt32(sqlReader[0]);
+                            lastTemperatureDataId = Convert.ToInt32( sqlReader[0] );
                             var tDateTime = (DateTime)sqlReader[1];
 
                             var temperatureData = new TemperatureData
@@ -125,17 +123,11 @@ namespace TemperatureCharts
                             allTemperatureDataList.Add( temperatureData );
                         }
                     }
-
-                    Debug.WriteLine( "SELECT2.. " + stopwatch.ElapsedMilliseconds );
                 }
-
-                conn.Close();
             }
 
-            
             var temperatureDataList = allTemperatureDataList.Where( a => a.UtcDateTime >= startDateTime.ToUniversalTime() );
 
-            Debug.WriteLine( "Series " + stopwatch.ElapsedMilliseconds );
             temperatureChart.Series.Clear();
 
             var seriesDictionary = new Dictionary<string, System.Windows.Forms.DataVisualization.Charting.Series>();
@@ -165,7 +157,7 @@ namespace TemperatureCharts
 
 
             SeriesChartType tempChartType = (SeriesChartType?)cboTempChartType.SelectedItem ?? SeriesChartType.FastLine;
-            
+
 
             foreach ( var seriesName in temperatureDataList.Select( a => a.SensorId ).Distinct() )
             {
@@ -238,197 +230,287 @@ namespace TemperatureCharts
             }
 
 
-            if ( temperatureDataList.Any() && (cbPowerUsageOnPeak.Checked || cbPowerUsageOffPeak.Checked || cbTotalPowerUsage.Checked) )
+            if ( temperatureDataList.Any() && ( cbPowerUsageOnPeak.Checked || cbPowerUsageOffPeak.Checked || cbTotalPowerUsage.Checked ) )
             {
-                SeriesChartType powerChartType = (SeriesChartType?)cboPowerChartType.SelectedItem ?? SeriesChartType.Area;
-                DateTime firstTempDate = DateTime.FromOADate(temperatureDataList.Min( a => a.DateTimeOADate ));
+                UpdatePowerUsageChart( DateTime.FromOADate( temperatureDataList.Min( a => a.DateTimeOADate ) ) );
+            }
 
-                
-                string apsDailyFile = "P:\\aps_daily.csv";
-                List<PowerUseData> powerUseDataList = new List<PowerUseData>();
+            lblStatus.Text = string.Format( "Updated: {0}", DateTime.Now.ToShortTimeString() );
 
-                if ( File.Exists( apsDailyFile ) )
+            tmrUpdateChart.Enabled = true;
+        }
+
+        private void UpdatePowerUsageChart( DateTime firstTemperatureDate )
+        {
+            SeriesChartType powerChartType = (SeriesChartType?)cboPowerChartType.SelectedItem ?? SeriesChartType.Area;
+            DirectoryInfo downloadDir = new DirectoryInfo( @"C:\Users\Mike\Downloads" );
+            List<string> downloadFileLines = new List<string>();
+            foreach ( var excelFile in downloadDir.EnumerateFiles().Where( a => a.Name.StartsWith( "Excel" ) && a.Extension == ".xls" ).ToList().OrderBy( a => a.LastWriteTime ) )
+            {
+                //if ( File.ReadAllText( excelFile.FullName ).Contains( "avg. temp(F)" ) )
                 {
-                    var sl = File.ReadAllLines( apsDailyFile );
-                    foreach ( var line in sl )
+                    downloadFileLines.AddRange( File.ReadAllLines( excelFile.FullName ) );
+                    var destFile = Path.Combine( @"C:\Users\Mike\Downloads\ImportedExcelFiles\", excelFile.Name );
+                    if ( File.Exists( destFile ) )
                     {
-                        var parts = line.Split( '\t' );
-                        if ( parts.Count() >= 4 && parts[0] != "day" )
+                        File.Delete( destFile );
+                    }
+
+                    File.Move( excelFile.FullName, destFile ); ;
+                }
+            }
+
+            string apsDailyFile = "P:\\aps_daily.csv";
+            string apsDailyFileUpdated = "P:\\aps_daily_Updated.csv";
+            powerUseDataList = new List<PowerUseData>();
+            List<string> combinedFileLines = new List<string>();
+
+            Dictionary<DateTime, decimal?> avgTemps = new Dictionary<DateTime, decimal?>();
+
+            if ( File.Exists( apsDailyFile ) )
+            {
+                downloadFileLines.AddRange( File.ReadAllLines( apsDailyFile ) );
+
+                foreach ( var lineEnum in downloadFileLines )
+                {
+                    string line = lineEnum;
+                    if ( line.Contains( "<td>" ) )
+                    {
+                        line = line.Replace( "&nbsp;", string.Empty );
+                        line = line.Replace( "\t", string.Empty );
+                        line = line.Replace( "<td>", string.Empty );
+                        line = line.Replace( "</td>", "\t" );
+                    }
+                    // <td>jun 27, 2016</td><td>12:00 AM</td><td>1.767</td><td>&nbsp;</td><td>&nbsp;</td>
+                    var parts = line.Split( '\t' );
+                    if ( parts.Count() >= 4 && parts[0] != "day" )
+                    {
+                        DateTime dateTime = DateTime.MinValue;
+                        if ( !DateTime.TryParse( parts[0] + " " + parts[1], out dateTime ) )
                         {
-                            var dateTime = DateTime.Parse( parts[0] + " " + parts[1] );
+                            if ( DateTime.TryParse( parts[0], out dateTime ) )
+                            {
+                                decimal? avgTemp = null;
+                                if ( parts.Count() >= 6 )
+                                {
+                                    decimal result = 0;
+                                    if ( Decimal.TryParse( parts[5], out result ) )
+                                    {
+                                        avgTemp = result;
+
+                                        if ( !avgTemps.ContainsKey( dateTime ) )
+                                        {
+                                            avgTemps.Add( dateTime, avgTemp );
+                                        }
+                                    }
+
+                                    continue;
+                                }
+                            }
+                        }
+
+                        if ( dateTime != DateTime.MinValue )
+                        {
                             decimal offpeakKW = 0;
                             Decimal.TryParse( parts[2], out offpeakKW );
                             decimal onpeakKW = 0;
                             Decimal.TryParse( parts[3], out onpeakKW );
 
-                            if (onpeakKW == 0 && offpeakKW != 0)
+                            if ( onpeakKW == 0 && offpeakKW != 0 )
                             {
-                                if (dateTime.TimeOfDay.Hours >= 12 && dateTime.TimeOfDay.Hours < 17)
+                                if ( dateTime.TimeOfDay.Hours >= 12 && dateTime.TimeOfDay.Hours < 17 )
                                 {
                                     onpeakKW = offpeakKW;
                                     offpeakKW = 0;
                                 }
                             }
 
-                            if ( !powerUseDataList.Any( x => x.DateTime == dateTime ))
+                            decimal? avgTemp = null;
+                            if ( parts.Count() >= 6 )
                             {
-                                powerUseDataList.Add( new PowerUseData
+                                decimal result = 0;
+                                if ( Decimal.TryParse( parts[5], out result ) )
                                 {
-                                    DateTime = dateTime,
-                                    OffpeakKW = offpeakKW,
-                                    OnpeakKW = onpeakKW
-                                } );
+                                    avgTemp = result;
+                                }
                             }
-                            else
+
+                            if ( offpeakKW != 0 || onpeakKW != 0 )
                             {
-                                Debug.WriteLine( "Duplicate PowerUsage: {0}", dateTime );
+                                combinedFileLines.Add( line );
+
+                                var powerUseData = powerUseDataList.FirstOrDefault( x => x.DateTime == dateTime );
+                                if ( powerUseData == null )
+                                {
+                                    powerUseDataList.Add( new PowerUseData
+                                    {
+                                        DateTime = dateTime,
+                                        OffpeakKW = offpeakKW,
+                                        OnpeakKW = onpeakKW,
+                                        AvgTemp = avgTemp
+                                    } );
+                                }
                             }
                         }
                     }
                 }
+            }
 
-                powerUseDataList = powerUseDataList.GroupBy( a => a.DateTime.Date ).Select( a => new PowerUseData
-                {
-                    DateTime = a.Key,
-                    OnpeakKW = a.Sum(x => x.OnpeakKW),
-                    OffpeakKW = a.Sum( x => x.OffpeakKW )
-                } ).ToList();
+            foreach ( var item in powerUseDataList.Where( a=> !a.AvgTemp.HasValue) )
+            {
+                item.AvgTemp = avgTemps.Where( a => a.Key == item.DateTime.Date && a.Value.HasValue ).Select( a => a.Value ).FirstOrDefault();
+            }
 
-                if ( powerUseDataList.Any() )
-                {
-                    temperatureChart.ChartAreas["BarChartArea"].AxisY.Minimum = 0;
+            powerUseDataList = powerUseDataList.OrderBy( a => a.DateTime ).ToList();
 
-                    if ( cbTotalPowerUsage.Checked )
-                    {
-                        temperatureChart.ChartAreas["BarChartArea"].AxisY.Maximum = Math.Round( (double)powerUseDataList.Max( a => a.TotalKW ) + 1, 0 );
-                    }
-                    else if ( cbPowerUsageOffPeak.Checked )
-                    {
-                        temperatureChart.ChartAreas["BarChartArea"].AxisY.Maximum = Math.Round( (double)powerUseDataList.Max( a => a.OffpeakKW ) + 1, 0 );
-                    }
-                    else 
-                    {
-                        temperatureChart.ChartAreas["BarChartArea"].AxisY.Maximum = Math.Round( (double)powerUseDataList.Max( a => a.OnpeakKW ) + 1, 0 );
-                    }
-                }
+            File.WriteAllLines( apsDailyFileUpdated, powerUseDataList.Select( a => string.Format( "{0}\t{1}\t{2}\t{3}\t{4}\t{5}", a.DateTime.Date.ToString( "d" ), a.DateTime.TimeOfDay, a.OffpeakKW, a.OnpeakKW, null, a.AvgTemp ) ) );
 
-                var powerUseDataListLastYear = powerUseDataList.Where( a => a.DateTime.AddYears( 1 ) <= DateTime.Now && a.DateTime.Year == ( DateTime.Now.Year - 1 ) && a.DateTime >= firstTempDate.AddYears( -1 ) ).ToList();
-                var powerUseDataListCurrentYear = powerUseDataList.Where( a => a.DateTime >= firstTempDate ).ToList();
+            if ( File.ReadAllText( apsDailyFile ) != File.ReadAllText( apsDailyFileUpdated ) )
+            {
+                File.Delete( apsDailyFile );
+                File.Move( apsDailyFileUpdated, apsDailyFile );
+            }
+            else
+            {
+                File.Delete( apsDailyFileUpdated );
+            }
 
-                if ( cbPowerUsageOffPeak.Checked )
-                {
-                    var powerUseSeriesOffpeak = new System.Windows.Forms.DataVisualization.Charting.Series
-                    {
-                        Name = "PowerUsage_Offpeak",
-                        XValueType = ChartValueType.Date,
-                        ChartType = powerChartType,
-                        Font = this.Font,
-                        IsVisibleInLegend = true,
-                        YValueType = ChartValueType.Double,
-                        IsValueShownAsLabel = true,
-                        Color = Color.FromArgb(128, Color.Green),
-                        ChartArea = "BarChartArea"
-                    };
+            powerUseDataList = powerUseDataList.OrderBy( a => a.DateTime ).GroupBy( a => a.DateTime.Date ).Select( a => new PowerUseData
+            {
+                DateTime = a.Key,
+                OnpeakKW = a.Sum( x => x.OnpeakKW ),
+                OffpeakKW = a.Sum( x => x.OffpeakKW ),
+                AvgTemp = a.Where( x => x.AvgTemp.HasValue).Max( x => x.AvgTemp)
+            } ).ToList();
 
-                    var powerUseSeriesOffpeakLastYear = new System.Windows.Forms.DataVisualization.Charting.Series
-                    {
-                        Name = "PowerUsage_OffpeakLastYear",
-                        XValueType = ChartValueType.Date,
-                        ChartType = powerChartType,
-                        Font = this.Font,
-                        IsVisibleInLegend = true,
-                        YValueType = ChartValueType.Double,
-                        IsValueShownAsLabel = true,
-                        Color = Color.FromArgb(128, Color.Blue),
-                        ChartArea = "BarChartArea"
-                    };
-
-                    powerUseSeriesOffpeak.Points.DataBindXY( powerUseDataListCurrentYear.Select( a => a.DateTimeOADate ).ToList(), powerUseDataListCurrentYear.Select( a => a.OffpeakKW ).ToList() );
-                    powerUseSeriesOffpeakLastYear.Points.DataBindXY( powerUseDataListLastYear.Select( a => a.DateTime.AddYears( 1 ).ToOADate() ).ToList(), powerUseDataListLastYear.Select( a => a.OffpeakKW ).ToList() );
-
-                    temperatureChart.Series.Add( powerUseSeriesOffpeak );
-                    temperatureChart.Series.Add( powerUseSeriesOffpeakLastYear );
-                }
-
-                if ( cbPowerUsageOnPeak.Checked )
-                {
-                    var powerUseSeriesOnpeak = new System.Windows.Forms.DataVisualization.Charting.Series
-                    {
-                        Name = "PowerUsage_Onpeak",
-                        XValueType = ChartValueType.Date,
-                        ChartType = powerChartType,
-                        Font = this.Font,
-                        IsVisibleInLegend = true,
-                        YValueType = ChartValueType.Double,
-                        IsValueShownAsLabel = true,
-                        Color = Color.FromArgb(128, Color.LightGreen),
-                        ChartArea = "BarChartArea"
-                    };
-
-                    var powerUseSeriesOnpeakLastYear = new System.Windows.Forms.DataVisualization.Charting.Series
-                    {
-                        Name = "PowerUsage_OnpeakLastYear",
-                        XValueType = ChartValueType.Date,
-                        ChartType = powerChartType,
-                        Font = this.Font,
-                        IsVisibleInLegend = true,
-                        YValueType = ChartValueType.Double,
-                        IsValueShownAsLabel = true,
-                        Color = Color.FromArgb(128, Color.LightBlue),
-                        ChartArea = "BarChartArea"
-                    };
-
-                    powerUseSeriesOnpeak.Points.DataBindXY( powerUseDataListCurrentYear.Select( a => a.DateTimeOADate ).ToList(), powerUseDataListCurrentYear.Select( a => a.OnpeakKW ).ToList() );
-
-                    powerUseSeriesOnpeakLastYear.Points.DataBindXY( powerUseDataListLastYear.Select( a => a.DateTime.AddYears( 1 ).ToOADate() ).ToList(), powerUseDataListLastYear.Select( a => a.OnpeakKW ).ToList() );
-                    
-                    temperatureChart.Series.Add( powerUseSeriesOnpeak );
-                    temperatureChart.Series.Add( powerUseSeriesOnpeakLastYear );
-                }
-
+            if ( powerUseDataList.Any() )
+            {
+                temperatureChart.ChartAreas["BarChartArea"].AxisY.Minimum = 0;
 
                 if ( cbTotalPowerUsage.Checked )
                 {
-                    var powerUseSeriesTotal = new System.Windows.Forms.DataVisualization.Charting.Series
-                    {
-                        Name = "PowerUsage_Total",
-                        XValueType = ChartValueType.Date,
-                        ChartType = powerChartType,
-                        Font = this.Font,
-                        IsVisibleInLegend = true,
-                        YValueType = ChartValueType.Double,
-                        IsValueShownAsLabel = true,
-                        Color = Color.FromArgb(128, Color.Lime),
-                        ChartArea = "BarChartArea"
-                    };
-
-                    var powerUseSeriesTotalLastYear = new System.Windows.Forms.DataVisualization.Charting.Series
-                    {
-                        Name = "PowerUsage_TotalLastYear",
-                        XValueType = ChartValueType.Date,
-                        ChartType = powerChartType,
-                        BorderDashStyle = ChartDashStyle.Solid,
-                        Font = this.Font,
-                        IsVisibleInLegend = true,
-                        YValueType = ChartValueType.Double,
-                        IsValueShownAsLabel = true,
-                        Color = Color.FromArgb(128, Color.DarkBlue),
-                        ChartArea = "BarChartArea"
-                    };
-
-                    powerUseSeriesTotal.Points.DataBindXY( powerUseDataListCurrentYear.Select( a => a.DateTimeOADate ).ToList(), powerUseDataListCurrentYear.Select( a => a.TotalKW ).ToList() );
-                    powerUseSeriesTotalLastYear.Points.DataBindXY( powerUseDataListLastYear.Select( a => a.DateTime.AddYears( 1 ).ToOADate() ).ToList(), powerUseDataListLastYear.Select( a => a.TotalKW ).ToList() );
-
-                    temperatureChart.Series.Add( powerUseSeriesTotalLastYear );
-                    temperatureChart.Series.Add( powerUseSeriesTotal );
+                    temperatureChart.ChartAreas["BarChartArea"].AxisY.Maximum = Math.Round( (double)powerUseDataList.Max( a => a.TotalKW ) + 1, 0 );
+                }
+                else if ( cbPowerUsageOffPeak.Checked )
+                {
+                    temperatureChart.ChartAreas["BarChartArea"].AxisY.Maximum = Math.Round( (double)powerUseDataList.Max( a => a.OffpeakKW ) + 1, 0 );
+                }
+                else
+                {
+                    temperatureChart.ChartAreas["BarChartArea"].AxisY.Maximum = Math.Round( (double)powerUseDataList.Max( a => a.OnpeakKW ) + 1, 0 );
                 }
             }
 
+            var powerUseDataListLastYear = powerUseDataList.Where( a => a.DateTime.AddYears( 1 ) <= DateTime.Now && a.DateTime.Year == ( DateTime.Now.Year - 1 ) && a.DateTime >= firstTemperatureDate.AddYears( -1 ) ).ToList();
+            var powerUseDataListCurrentYear = powerUseDataList.Where( a => a.DateTime >= firstTemperatureDate ).ToList();
 
-            Debug.WriteLine( "Done " + stopwatch.ElapsedMilliseconds );
-            lblStatus.Text = string.Format( "Updated: {0}", DateTime.Now.ToShortTimeString() );
+            if ( cbPowerUsageOffPeak.Checked )
+            {
+                var powerUseSeriesOffpeak = new System.Windows.Forms.DataVisualization.Charting.Series
+                {
+                    Name = "PowerUsage_Offpeak",
+                    XValueType = ChartValueType.Date,
+                    ChartType = powerChartType,
+                    Font = this.Font,
+                    IsVisibleInLegend = true,
+                    YValueType = ChartValueType.Double,
+                    IsValueShownAsLabel = true,
+                    Color = Color.FromArgb( 128, Color.Green ),
+                    ChartArea = "BarChartArea"
+                };
 
-            tmrUpdateChart.Enabled = true;
+                var powerUseSeriesOffpeakLastYear = new System.Windows.Forms.DataVisualization.Charting.Series
+                {
+                    Name = "PowerUsage_OffpeakLastYear",
+                    XValueType = ChartValueType.Date,
+                    ChartType = powerChartType,
+                    Font = this.Font,
+                    IsVisibleInLegend = true,
+                    YValueType = ChartValueType.Double,
+                    IsValueShownAsLabel = true,
+                    Color = Color.FromArgb( 128, Color.Blue ),
+                    ChartArea = "BarChartArea"
+                };
+
+                powerUseSeriesOffpeak.Points.DataBindXY( powerUseDataListCurrentYear.Select( a => a.DateTimeOADate ).ToList(), powerUseDataListCurrentYear.Select( a => a.OffpeakKW ).ToList() );
+                powerUseSeriesOffpeakLastYear.Points.DataBindXY( powerUseDataListLastYear.Select( a => a.DateTime.AddYears( 1 ).ToOADate() ).ToList(), powerUseDataListLastYear.Select( a => a.OffpeakKW ).ToList() );
+
+                temperatureChart.Series.Add( powerUseSeriesOffpeak );
+                temperatureChart.Series.Add( powerUseSeriesOffpeakLastYear );
+            }
+
+            if ( cbPowerUsageOnPeak.Checked )
+            {
+                var powerUseSeriesOnpeak = new System.Windows.Forms.DataVisualization.Charting.Series
+                {
+                    Name = "PowerUsage_Onpeak",
+                    XValueType = ChartValueType.Date,
+                    ChartType = powerChartType,
+                    Font = this.Font,
+                    IsVisibleInLegend = true,
+                    YValueType = ChartValueType.Double,
+                    IsValueShownAsLabel = true,
+                    Color = Color.FromArgb( 128, Color.LightGreen ),
+                    ChartArea = "BarChartArea"
+                };
+
+                var powerUseSeriesOnpeakLastYear = new System.Windows.Forms.DataVisualization.Charting.Series
+                {
+                    Name = "PowerUsage_OnpeakLastYear",
+                    XValueType = ChartValueType.Date,
+                    ChartType = powerChartType,
+                    Font = this.Font,
+                    IsVisibleInLegend = true,
+                    YValueType = ChartValueType.Double,
+                    IsValueShownAsLabel = true,
+                    Color = Color.FromArgb( 128, Color.LightBlue ),
+                    ChartArea = "BarChartArea"
+                };
+
+                powerUseSeriesOnpeak.Points.DataBindXY( powerUseDataListCurrentYear.Select( a => a.DateTimeOADate ).ToList(), powerUseDataListCurrentYear.Select( a => a.OnpeakKW ).ToList() );
+
+                powerUseSeriesOnpeakLastYear.Points.DataBindXY( powerUseDataListLastYear.Select( a => a.DateTime.AddYears( 1 ).ToOADate() ).ToList(), powerUseDataListLastYear.Select( a => a.OnpeakKW ).ToList() );
+
+                temperatureChart.Series.Add( powerUseSeriesOnpeak );
+                temperatureChart.Series.Add( powerUseSeriesOnpeakLastYear );
+            }
+
+
+            if ( cbTotalPowerUsage.Checked )
+            {
+                var powerUseSeriesTotal = new System.Windows.Forms.DataVisualization.Charting.Series
+                {
+                    Name = "PowerUsage_Total",
+                    XValueType = ChartValueType.Date,
+                    ChartType = powerChartType,
+                    Font = this.Font,
+                    IsVisibleInLegend = true,
+                    YValueType = ChartValueType.Double,
+                    IsValueShownAsLabel = true,
+                    Color = Color.FromArgb( 128, Color.Lime ),
+                    ChartArea = "BarChartArea"
+                };
+
+                var powerUseSeriesTotalLastYear = new System.Windows.Forms.DataVisualization.Charting.Series
+                {
+                    Name = "PowerUsage_TotalLastYear",
+                    XValueType = ChartValueType.Date,
+                    ChartType = powerChartType,
+                    BorderDashStyle = ChartDashStyle.Solid,
+                    Font = this.Font,
+                    IsVisibleInLegend = true,
+                    YValueType = ChartValueType.Double,
+                    IsValueShownAsLabel = true,
+                    Color = Color.FromArgb( 128, Color.DarkBlue ),
+                    ChartArea = "BarChartArea"
+                };
+
+                powerUseSeriesTotal.Points.DataBindXY( powerUseDataListCurrentYear.Select( a => a.DateTimeOADate ).ToList(), powerUseDataListCurrentYear.Select( a => a.TotalKW ).ToList() );
+                powerUseSeriesTotalLastYear.Points.DataBindXY( powerUseDataListLastYear.Select( a => a.DateTime.AddYears( 1 ).ToOADate() ).ToList(), powerUseDataListLastYear.Select( a => a.TotalKW ).ToList() );
+
+                temperatureChart.Series.Add( powerUseSeriesTotalLastYear );
+                temperatureChart.Series.Add( powerUseSeriesTotal );
+            }
         }
 
         /// <summary>
@@ -443,22 +525,33 @@ namespace TemperatureCharts
                 case ChartElementType.DataPoint:
                     var dataPoint = e.HitTestResult.Series.Points[e.HitTestResult.PointIndex];
                     string tooltipFormat;
-                    if ( e.HitTestResult.Series.Name.StartsWith("PowerUsage") )
+                    if ( e.HitTestResult.Series.Name.StartsWith( "PowerUsage" ) )
                     {
-                        tooltipFormat = "{1}KWh @{0}";
+                        tooltipFormat = "{1}KWh @{0:d}\nAvg Temp:{5}F";
                     }
                     else
                     {
-                        tooltipFormat = "{1}F @ {0}\nSensor: {2}";
+                        tooltipFormat = "{1}F @ {0:g}\nSensor: {2}\n{3}F/hr_last60\n{4}F/hr_last10";
                     }
+
+
+                    var sensorId = SensorNames.FirstOrDefault( a => a.Value == e.HitTestResult.Series.Name ).Key;
+                    decimal degreesPerMinute60 = GetSlopeForWindow( dataPoint, sensorId, 60 );
+                    decimal degreesPerMinute10 = GetSlopeForWindow( dataPoint, sensorId, 10 );
 
                     string tooltipText = string.Format(
                         tooltipFormat,
-                        e.HitTestResult.Series.Name.Contains( "LastYear" ) 
-                            ? DateTime.FromOADate( dataPoint.XValue ).AddYears(-1).ToString( "F" ) 
-                            : DateTime.FromOADate( dataPoint.XValue ).ToString( "F" ),
+                        e.HitTestResult.Series.Name.Contains( "LastYear" )
+                            ? DateTime.FromOADate( dataPoint.XValue ).AddYears( -1 )
+                            : DateTime.FromOADate( dataPoint.XValue ),
                         dataPoint.YValues[0].ToString( "N1" ),
-                        e.HitTestResult.Series.Name );
+                        e.HitTestResult.Series.Name,
+                        ( degreesPerMinute60 * 60 ).ToString( "F2" ),
+                        ( degreesPerMinute10 * 60 ).ToString( "F2" ),
+                        e.HitTestResult.Series.Name.Contains( "LastYear" )
+                            ? powerUseDataList.Where( a => a.DateTime == DateTime.FromOADate( dataPoint.XValue ).Date.AddYears( -1 ) ).Select( a => a.AvgTemp ).FirstOrDefault()
+                            : powerUseDataList.Where( a => a.DateTime == DateTime.FromOADate( dataPoint.XValue ).Date ).Select( a => a.AvgTemp ).FirstOrDefault()
+                        );
 
                     chartToolTip.UseAnimation = true;
                     chartToolTip.UseFading = true;
@@ -470,6 +563,19 @@ namespace TemperatureCharts
                     chartToolTip.Hide( temperatureChart );
                     break;
             }
+        }
+
+        private decimal GetSlopeForWindow( DataPoint dataPoint, string sensorId, int timeWindowMinutes )
+        {
+            var degreesPerMinute = 0.0M;
+            var xMinutesAgo = DateTime.FromOADate( dataPoint.XValue ).AddMinutes( -timeWindowMinutes ).ToOADate();
+            var dataXMinutesAgo = allTemperatureDataList.Where( a => a.SensorId == sensorId && a.DateTimeOADate <= xMinutesAgo ).OrderByDescending( a => a.DateTimeOADate ).FirstOrDefault();
+            if ( dataXMinutesAgo != null )
+            {
+                degreesPerMinute = ( ( (decimal)dataPoint.YValues[0] - dataXMinutesAgo.Temperature ) / timeWindowMinutes );
+            }
+
+            return degreesPerMinute;
         }
 
         /// <summary>
@@ -492,7 +598,6 @@ namespace TemperatureCharts
 
         private void SaveChartImage()
         {
-
             DateTime lastChartImageDateTime = DateTime.MinValue;
             string imageFile = "D:\\OneDrive_Folder\\OneDrive\\TemperatureData\\Chart.jpg";
             if ( File.Exists( imageFile ) )
@@ -590,8 +695,6 @@ namespace TemperatureCharts
                         source.Open();
                         destination.Open();
                         source.BackupDatabase( destination, "main", "main", -1, sqlBackupCallback, 0 );
-                        source.Close();
-                        destination.Close();
                     }
 
                     var backupFileZipName = backupFile + ".zip";
@@ -614,16 +717,6 @@ namespace TemperatureCharts
         }
 
         /// <summary>
-        /// Handles the TextChanged event of the tbHours control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        private void tbHours_TextChanged( object sender, EventArgs e )
-        {
-            //
-        }
-
-        /// <summary>
         /// Handles the CheckedChanged event of the rbAll control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
@@ -642,35 +735,10 @@ namespace TemperatureCharts
             lbHours.Enabled = rbLastX.Checked;
         }
 
-        /// <summary>
-        /// Handles the SelectedIndexChanged event of the cboChartType control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        private void cboChartType_SelectedIndexChanged( object sender, EventArgs e )
-        {
-            //
-        }
-
-        private void frmMain_Shown( object sender, EventArgs e )
-        {
-            BackupDatabase();
-        }
-
         private void btnRefresh_Click( object sender, EventArgs e )
         {
             UpdateChart();
             SaveChartImage();
-        }
-
-        private void temperatureChart_Click( object sender, EventArgs e )
-        {
-
-        }
-
-        private void cbPowerUsageOffPeak_CheckedChanged( object sender, EventArgs e )
-        {
-
         }
     }
 
@@ -686,7 +754,7 @@ namespace TemperatureCharts
             {
                 return UtcDateTime.ToLocalTime().ToOADate();
             }
-        } 
+        }
 
         public string SensorId;
         public Decimal Temperature;
@@ -701,16 +769,22 @@ namespace TemperatureCharts
             {
                 return DateTime.ToOADate();
             }
-        } 
+        }
         public decimal OffpeakKW { get; set; }
-        public decimal OnpeakKW  { get; set; }
-        
+        public decimal OnpeakKW { get; set; }
+        public decimal? AvgTemp { get; set; }
+
         public decimal TotalKW
         {
             get
             {
                 return OffpeakKW + OnpeakKW;
             }
+        }
+
+        public override string ToString()
+        {
+            return string.Format( "{0} TotalKW:{1} AveTemp:{2}", this.DateTime, this.TotalKW, this.AvgTemp );
         }
     }
 }
