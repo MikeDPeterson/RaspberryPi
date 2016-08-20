@@ -29,7 +29,7 @@ namespace TemperatureCharts
         private ToolTip chartToolTip = new ToolTip();
         private List<TemperatureData> allTemperatureDataList = new List<TemperatureData>();
         List<PowerUseData> powerUseDataList = null;
-        
+
         private int lastTemperatureDataId = 0;
 
         /// <summary>
@@ -46,13 +46,15 @@ namespace TemperatureCharts
             SensorNames.Add( "28-0416361444ff", "Upper Attic" );
             SensorNames.Add( "28-031635fff1ff", "Outdoor South" );
             SensorNames.Add( "28-03163622ebff", "Outer Attic" );
+            SensorNames.Add( "28-0416374e05ff", "Upstairs" );
 
             SensorColors = new Dictionary<string, System.Drawing.Color>();
-            SensorColors.Add( "28-031635fb46ff", System.Drawing.Color.FromArgb( 128, System.Drawing.Color.Blue ) );
-            SensorColors.Add( "28-031636b23aff", System.Drawing.Color.FromArgb( 128, System.Drawing.Color.Green ) );
-            SensorColors.Add( "28-0416361444ff", System.Drawing.Color.FromArgb( 128, System.Drawing.Color.Goldenrod ) );
-            SensorColors.Add( "28-031635fff1ff", System.Drawing.Color.FromArgb( 128, System.Drawing.Color.Plum ) );
-            SensorColors.Add( "28-03163622ebff", System.Drawing.Color.FromArgb( 128, System.Drawing.Color.Red ) );
+            SensorColors.Add( "28-0416374e05ff", Color.FromArgb( 128, Color.CornflowerBlue ) );
+            SensorColors.Add( "28-031635fb46ff", Color.FromArgb( 128, Color.Blue ) );
+            SensorColors.Add( "28-031636b23aff", Color.FromArgb( 128, Color.Green ) );
+            SensorColors.Add( "28-0416361444ff", Color.FromArgb( 128, Color.Goldenrod ) );
+            SensorColors.Add( "28-031635fff1ff", Color.FromArgb( 128, Color.Plum ) );
+            SensorColors.Add( "28-03163622ebff", Color.FromArgb( 128, Color.Red ) );
 
             clbSeries.DataSource = SensorNames.ToList();
             clbSeries.DisplayMember = "Value";
@@ -87,157 +89,162 @@ namespace TemperatureCharts
         private void UpdateChart()
         {
             tmrUpdateChart.Enabled = false;
-
-            var startDateTime = DateTime.Now.AddYears( -10 );
-
-            using ( SQLiteConnection conn = new SQLiteConnection( "Data Source=P:\\temperatureDatabase.db;Version=3;Read Only=True" ) )
+            try
             {
-                conn.Open();
 
-                using ( SQLiteCommand cmd = new SQLiteCommand( "SELECT Id, tdatetime, sensorId, temperature FROM temperatureLog WHERE id > @param2 ORDER BY Id", conn ) )
+                var startDateTime = DateTime.Now.AddYears( -10 );
+
+                using ( SQLiteConnection conn = new SQLiteConnection( "Data Source=P:\\temperatureDatabase.db;Version=3;Read Only=True" ) )
                 {
-                    if ( rbLastX.Checked )
-                    {
-                        double hours = 24;
-                        Double.TryParse( tbHours.Text, out hours );
+                    conn.Open();
 
-                        startDateTime = DateTime.Now.AddHours( -hours );
-                    }
-
-                    //cmd.Parameters.Add( new SQLiteParameter( "@param1", System.Data.DbType.DateTime ) { Value = startDateTime.ToUniversalTime() } );
-                    cmd.Parameters.Add( new SQLiteParameter( "@param2", System.Data.DbType.Int32 ) { Value = this.lastTemperatureDataId } );
-                    using ( SQLiteDataReader sqlReader = cmd.ExecuteReader( System.Data.CommandBehavior.SingleResult ) )
+                    using ( SQLiteCommand cmd = new SQLiteCommand( "SELECT Id, tdatetime, sensorId, temperature FROM temperatureLog WHERE id > @param2 ORDER BY Id", conn ) )
                     {
-                        while ( sqlReader.Read() )
+                        if ( rbLastX.Checked )
                         {
-                            lastTemperatureDataId = Convert.ToInt32( sqlReader[0] );
-                            var tDateTime = (DateTime)sqlReader[1];
+                            double hours = 24;
+                            Double.TryParse( tbHours.Text, out hours );
 
-                            var temperatureData = new TemperatureData
+                            startDateTime = DateTime.Now.AddHours( -hours );
+                        }
+
+                        //cmd.Parameters.Add( new SQLiteParameter( "@param1", System.Data.DbType.DateTime ) { Value = startDateTime.ToUniversalTime() } );
+                        cmd.Parameters.Add( new SQLiteParameter( "@param2", System.Data.DbType.Int32 ) { Value = this.lastTemperatureDataId } );
+                        using ( SQLiteDataReader sqlReader = cmd.ExecuteReader( System.Data.CommandBehavior.SingleResult ) )
+                        {
+                            while ( sqlReader.Read() )
                             {
-                                UtcDateTime = tDateTime,
-                                SensorId = sqlReader[2] as string,
-                                Temperature = (decimal)sqlReader[3]
-                            };
+                                lastTemperatureDataId = Convert.ToInt32( sqlReader[0] );
+                                var tDateTime = (DateTime)sqlReader[1];
 
-                            allTemperatureDataList.Add( temperatureData );
+                                var temperatureData = new TemperatureData
+                                {
+                                    UtcDateTime = tDateTime,
+                                    SensorId = sqlReader[2] as string,
+                                    Temperature = (decimal)sqlReader[3]
+                                };
+
+                                allTemperatureDataList.Add( temperatureData );
+                            }
                         }
                     }
                 }
-            }
 
-            var temperatureDataList = allTemperatureDataList.Where( a => a.UtcDateTime >= startDateTime.ToUniversalTime() );
+                var temperatureDataList = allTemperatureDataList.Where( a => a.UtcDateTime >= startDateTime.ToUniversalTime() );
 
-            temperatureChart.Series.Clear();
+                temperatureChart.Series.Clear();
 
-            var seriesDictionary = new Dictionary<string, System.Windows.Forms.DataVisualization.Charting.Series>();
+                var seriesDictionary = new Dictionary<string, System.Windows.Forms.DataVisualization.Charting.Series>();
 
-            var chartArea = temperatureChart.ChartAreas[0];
-            chartArea.CursorX.IsUserEnabled = true;
-            chartArea.CursorY.IsUserEnabled = true;
-            chartArea.CursorX.IsUserSelectionEnabled = true;
-            chartArea.CursorY.IsUserSelectionEnabled = true;
-            chartArea.AxisX.LabelStyle.Format = "g";
-            if ( temperatureDataList.Any() )
-            {
-                chartArea.AxisY.Minimum = Math.Round( (double)temperatureDataList.Min( a => a.Temperature ) - 1, 0 );
-                chartArea.AxisY.Maximum = Math.Round( (double)temperatureDataList.Max( a => a.Temperature ) + 1, 0 );
-            }
-
-            chartArea.AxisY.MinorGrid.Enabled = true;
-            chartArea.AxisY.MinorGrid.Interval = .5;
-            chartArea.AxisY.MinorGrid.LineColor = System.Drawing.Color.LightGray;
-
-            chartArea.AxisX.MinorGrid.Enabled = true;
-            chartArea.AxisX.MinorGrid.Interval = 1 / 48;
-            chartArea.AxisX.MinorGrid.LineColor = System.Drawing.Color.LightGreen;
-
-            chartArea.AxisY2.Minimum = 0;
-            chartArea.AxisY2.LineColor = System.Drawing.Color.FromArgb( 128, System.Drawing.Color.PowderBlue );
-
-
-            SeriesChartType tempChartType = (SeriesChartType?)cboTempChartType.SelectedItem ?? SeriesChartType.FastLine;
-
-
-            foreach ( var seriesName in temperatureDataList.Select( a => a.SensorId ).Distinct() )
-            {
-                var series = new Series
+                var chartArea = temperatureChart.ChartAreas[0];
+                chartArea.CursorX.IsUserEnabled = true;
+                chartArea.CursorY.IsUserEnabled = true;
+                chartArea.CursorX.IsUserSelectionEnabled = true;
+                chartArea.CursorY.IsUserSelectionEnabled = true;
+                chartArea.AxisX.LabelStyle.Format = "g";
+                if ( temperatureDataList.Any() )
                 {
-                    Name = SensorNames[seriesName],
-                    XValueType = ChartValueType.DateTime,
-                    ChartType = tempChartType,
-                    BorderWidth = 3,
-                    Font = this.Font,
-                    IsVisibleInLegend = true,
-                    YValueType = ChartValueType.Double,
-                    IsValueShownAsLabel = false,
-                    Color = SensorColors[seriesName]
-                };
-
-                seriesDictionary.Add( seriesName, series );
-            }
-
-            foreach ( var item in seriesDictionary )
-            {
-                var sensorId = item.Key;
-
-                if ( clbSeries.CheckedItems.OfType<KeyValuePair<string, string>>().Any( a => a.Key == sensorId ) )
-                {
-                    var series = item.Value;
-                    var dataList = temperatureDataList.Where( a => a.SensorId == sensorId ).Select( a => new { a.DateTimeOADate, a.Temperature } ).ToList();
-                    series.Points.DataBindXY( dataList.Select( a => a.DateTimeOADate ).ToList(), dataList.Select( a => a.Temperature ).ToList() );
-                    temperatureChart.Series.Add( series );
+                    chartArea.AxisY.Minimum = Math.Round( (double)temperatureDataList.Min( a => a.Temperature ) - 1, 0 );
+                    chartArea.AxisY.Maximum = Math.Round( (double)temperatureDataList.Max( a => a.Temperature ) + 1, 0 );
                 }
-            }
 
-            if ( cbShowDelta.Checked )
+                chartArea.AxisY.MinorGrid.Enabled = true;
+                chartArea.AxisY.MinorGrid.Interval = .5;
+                chartArea.AxisY.MinorGrid.LineColor = Color.LightGray;
+
+                chartArea.AxisX.MinorGrid.Enabled = true;
+                chartArea.AxisX.MinorGrid.Interval = 1 / 48;
+                chartArea.AxisX.MinorGrid.LineColor = Color.LightGreen;
+
+                chartArea.AxisY2.Minimum = 0;
+                chartArea.AxisY2.LineColor = Color.FromArgb( 128, Color.PowderBlue );
+
+
+                SeriesChartType tempChartType = (SeriesChartType?)cboTempChartType.SelectedItem ?? SeriesChartType.FastLine;
+
+
+                foreach ( var seriesName in temperatureDataList.Select( a => a.SensorId ).Distinct() )
+                {
+                    var series = new Series
+                    {
+                        Name = SensorNames[seriesName],
+                        XValueType = ChartValueType.DateTime,
+                        ChartType = tempChartType,
+                        BorderWidth = 3,
+                        Font = this.Font,
+                        IsVisibleInLegend = true,
+                        YValueType = ChartValueType.Double,
+                        IsValueShownAsLabel = false,
+                        Color = SensorColors[seriesName]
+                    };
+
+                    seriesDictionary.Add( seriesName, series );
+                }
+
+                foreach ( var item in seriesDictionary )
+                {
+                    var sensorId = item.Key;
+
+                    if ( clbSeries.CheckedItems.OfType<KeyValuePair<string, string>>().Any( a => a.Key == sensorId ) )
+                    {
+                        var series = item.Value;
+                        var dataList = temperatureDataList.Where( a => a.SensorId == sensorId ).Select( a => new { a.DateTimeOADate, a.Temperature } ).ToList();
+                        series.Points.DataBindXY( dataList.Select( a => a.DateTimeOADate ).ToList(), dataList.Select( a => a.Temperature ).ToList() );
+                        temperatureChart.Series.Add( series );
+                    }
+                }
+
+                if ( cbShowDelta.Checked )
+                {
+                    var deltaDataList = temperatureDataList.GroupBy( a => a.DateTimeOADate )
+                    .Select( a => new
+                    {
+                        DateTimeOADate = a.Key,
+                        SensorId = "Delta1",
+                        Sensor1Data = a.FirstOrDefault( x => x.SensorId == "28-03163622ebff" ),
+                        Sensor2Data = a.FirstOrDefault( x => x.SensorId == "28-0416361444ff" )
+                    } )
+                    .Where( a => a.Sensor1Data != null && a.Sensor2Data != null )
+                    .Select( a => new
+                    {
+                        a.DateTimeOADate,
+                        Temperature = a.Sensor1Data.Temperature - a.Sensor2Data.Temperature
+                    } )
+                    .ToList();
+
+                    var deltaSeries = new System.Windows.Forms.DataVisualization.Charting.Series
+                    {
+                        Name = "Delta1",
+                        XValueType = ChartValueType.DateTime,
+                        ChartType = tempChartType,
+                        BorderWidth = 1,
+                        BorderDashStyle = ChartDashStyle.Dash,
+                        Font = this.Font,
+                        IsVisibleInLegend = true,
+                        YValueType = ChartValueType.Double,
+                        IsValueShownAsLabel = false,
+                        Color = Color.FromArgb( 128, Color.Black ),
+                        YAxisType = AxisType.Secondary
+                    };
+
+                    deltaSeries.Points.DataBindXY( deltaDataList.Select( a => a.DateTimeOADate ).ToList(), deltaDataList.Select( a => a.Temperature ).ToList() );
+
+
+                    temperatureChart.Series.Add( deltaSeries );
+                }
+
+
+                if ( temperatureDataList.Any() && ( cbPowerUsageOnPeak.Checked || cbPowerUsageOffPeak.Checked || cbTotalPowerUsage.Checked ) )
+                {
+                    UpdatePowerUsageChart( DateTime.FromOADate( temperatureDataList.Min( a => a.DateTimeOADate ) ) );
+                }
+
+                lblStatus.Text = string.Format( "Updated: {0}", DateTime.Now.ToShortTimeString() );
+            }
+            finally
             {
-                var deltaDataList = temperatureDataList.GroupBy( a => a.DateTimeOADate )
-                .Select( a => new
-                {
-                    DateTimeOADate = a.Key,
-                    SensorId = "Delta1",
-                    Sensor1Data = a.FirstOrDefault( x => x.SensorId == "28-03163622ebff" ),
-                    Sensor2Data = a.FirstOrDefault( x => x.SensorId == "28-0416361444ff" )
-                } )
-                .Where( a => a.Sensor1Data != null && a.Sensor2Data != null )
-                .Select( a => new
-                {
-                    a.DateTimeOADate,
-                    Temperature = a.Sensor1Data.Temperature - a.Sensor2Data.Temperature
-                } )
-                .ToList();
-
-                var deltaSeries = new System.Windows.Forms.DataVisualization.Charting.Series
-                {
-                    Name = "Delta1",
-                    XValueType = ChartValueType.DateTime,
-                    ChartType = tempChartType,
-                    BorderWidth = 1,
-                    BorderDashStyle = ChartDashStyle.Dash,
-                    Font = this.Font,
-                    IsVisibleInLegend = true,
-                    YValueType = ChartValueType.Double,
-                    IsValueShownAsLabel = false,
-                    Color = System.Drawing.Color.FromArgb( 128, System.Drawing.Color.Black ),
-                    YAxisType = AxisType.Secondary
-                };
-
-                deltaSeries.Points.DataBindXY( deltaDataList.Select( a => a.DateTimeOADate ).ToList(), deltaDataList.Select( a => a.Temperature ).ToList() );
-
-
-                temperatureChart.Series.Add( deltaSeries );
+                tmrUpdateChart.Enabled = true;
             }
-
-
-            if ( temperatureDataList.Any() && ( cbPowerUsageOnPeak.Checked || cbPowerUsageOffPeak.Checked || cbTotalPowerUsage.Checked ) )
-            {
-                UpdatePowerUsageChart( DateTime.FromOADate( temperatureDataList.Min( a => a.DateTimeOADate ) ) );
-            }
-
-            lblStatus.Text = string.Format( "Updated: {0}", DateTime.Now.ToShortTimeString() );
-
-            tmrUpdateChart.Enabled = true;
         }
 
         private void UpdatePowerUsageChart( DateTime firstTemperatureDate )
@@ -247,17 +254,14 @@ namespace TemperatureCharts
             List<string> downloadFileLines = new List<string>();
             foreach ( var excelFile in downloadDir.EnumerateFiles().Where( a => a.Name.StartsWith( "Excel" ) && a.Extension == ".xls" ).ToList().OrderBy( a => a.LastWriteTime ) )
             {
-                //if ( File.ReadAllText( excelFile.FullName ).Contains( "avg. temp(F)" ) )
+                downloadFileLines.AddRange( File.ReadAllLines( excelFile.FullName ) );
+                var destFile = Path.Combine( @"C:\Users\Mike\Downloads\ImportedExcelFiles\", excelFile.Name );
+                if ( File.Exists( destFile ) )
                 {
-                    downloadFileLines.AddRange( File.ReadAllLines( excelFile.FullName ) );
-                    var destFile = Path.Combine( @"C:\Users\Mike\Downloads\ImportedExcelFiles\", excelFile.Name );
-                    if ( File.Exists( destFile ) )
-                    {
-                        File.Delete( destFile );
-                    }
-
-                    File.Move( excelFile.FullName, destFile ); ;
+                    File.Delete( destFile );
                 }
+
+                File.Move( excelFile.FullName, destFile ); ;
             }
 
             string apsDailyFile = "P:\\aps_daily.csv";
@@ -356,7 +360,7 @@ namespace TemperatureCharts
                 }
             }
 
-            foreach ( var item in powerUseDataList.Where( a=> !a.AvgTemp.HasValue) )
+            foreach ( var item in powerUseDataList.Where( a => !a.AvgTemp.HasValue ) )
             {
                 item.AvgTemp = avgTemps.Where( a => a.Key == item.DateTime.Date && a.Value.HasValue ).Select( a => a.Value ).FirstOrDefault();
             }
@@ -380,7 +384,7 @@ namespace TemperatureCharts
                 DateTime = a.Key,
                 OnpeakKW = a.Sum( x => x.OnpeakKW ),
                 OffpeakKW = a.Sum( x => x.OffpeakKW ),
-                AvgTemp = a.Where( x => x.AvgTemp.HasValue).Max( x => x.AvgTemp)
+                AvgTemp = a.Where( x => x.AvgTemp.HasValue ).Max( x => x.AvgTemp )
             } ).ToList();
 
             if ( powerUseDataList.Any() )
@@ -555,8 +559,8 @@ namespace TemperatureCharts
 
                     chartToolTip.UseAnimation = true;
                     chartToolTip.UseFading = true;
-                    chartToolTip.BackColor = System.Drawing.Color.Black;
-                    chartToolTip.ForeColor = System.Drawing.Color.LightGreen;
+                    chartToolTip.BackColor = Color.Black;
+                    chartToolTip.ForeColor = Color.LightGreen;
                     chartToolTip.Show( tooltipText, temperatureChart, e.X, e.Y + 20 );
                     break;
                 default:
@@ -598,6 +602,11 @@ namespace TemperatureCharts
 
         private void SaveChartImage()
         {
+            if (!cbSaveChartJPGs.Checked)
+            {
+                return;
+            }
+
             DateTime lastChartImageDateTime = DateTime.MinValue;
             string imageFile = "D:\\OneDrive_Folder\\OneDrive\\TemperatureData\\Chart.jpg";
             if ( File.Exists( imageFile ) )
@@ -653,7 +662,10 @@ namespace TemperatureCharts
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         private void tmrBackupDatabase_Tick( object sender, EventArgs e )
         {
-            BackupDatabase();
+            if ( cbBackupDatabase.Checked )
+            {
+                BackupDatabase();
+            }
         }
 
         /// <summary>

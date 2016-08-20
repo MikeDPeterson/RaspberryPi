@@ -55,6 +55,8 @@
             this.btnRefresh = new System.Windows.Forms.Button();
             this.cbPowerUsageOffPeak = new System.Windows.Forms.CheckBox();
             this.cbTotalPowerUsage = new System.Windows.Forms.CheckBox();
+            this.cbBackupDatabase = new System.Windows.Forms.CheckBox();
+            this.cbSaveChartJPGs = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.temperatureChart)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -216,7 +218,7 @@
             this.clbSeries.FormattingEnabled = true;
             this.clbSeries.Location = new System.Drawing.Point(507, 12);
             this.clbSeries.Name = "clbSeries";
-            this.clbSeries.Size = new System.Drawing.Size(138, 84);
+            this.clbSeries.Size = new System.Drawing.Size(138, 116);
             this.clbSeries.TabIndex = 1;
             // 
             // cbPowerUsageOnPeak
@@ -232,7 +234,7 @@
             // cbShowDelta
             // 
             this.cbShowDelta.AutoSize = true;
-            this.cbShowDelta.Location = new System.Drawing.Point(507, 105);
+            this.cbShowDelta.Location = new System.Drawing.Point(669, 111);
             this.cbShowDelta.Name = "cbShowDelta";
             this.cbShowDelta.Size = new System.Drawing.Size(80, 17);
             this.cbShowDelta.TabIndex = 7;
@@ -272,11 +274,33 @@
             this.cbTotalPowerUsage.Text = "Show Total Power Usage";
             this.cbTotalPowerUsage.UseVisualStyleBackColor = true;
             // 
+            // cbBackupDatabase
+            // 
+            this.cbBackupDatabase.AutoSize = true;
+            this.cbBackupDatabase.Location = new System.Drawing.Point(896, 54);
+            this.cbBackupDatabase.Name = "cbBackupDatabase";
+            this.cbBackupDatabase.Size = new System.Drawing.Size(109, 17);
+            this.cbBackupDatabase.TabIndex = 11;
+            this.cbBackupDatabase.Text = "Backup Database";
+            this.cbBackupDatabase.UseVisualStyleBackColor = true;
+            // 
+            // cbSaveChartJPGs
+            // 
+            this.cbSaveChartJPGs.AutoSize = true;
+            this.cbSaveChartJPGs.Location = new System.Drawing.Point(896, 77);
+            this.cbSaveChartJPGs.Name = "cbSaveChartJPGs";
+            this.cbSaveChartJPGs.Size = new System.Drawing.Size(106, 17);
+            this.cbSaveChartJPGs.TabIndex = 12;
+            this.cbSaveChartJPGs.Text = "Save Chart JPGs";
+            this.cbSaveChartJPGs.UseVisualStyleBackColor = true;
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1017, 638);
+            this.Controls.Add(this.cbSaveChartJPGs);
+            this.Controls.Add(this.cbBackupDatabase);
             this.Controls.Add(this.cbTotalPowerUsage);
             this.Controls.Add(this.cbPowerUsageOffPeak);
             this.Controls.Add(this.btnRefresh);
@@ -323,6 +347,8 @@
         private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.CheckBox cbPowerUsageOffPeak;
         private System.Windows.Forms.CheckBox cbTotalPowerUsage;
+        private System.Windows.Forms.CheckBox cbBackupDatabase;
+        private System.Windows.Forms.CheckBox cbSaveChartJPGs;
     }
 }
 
