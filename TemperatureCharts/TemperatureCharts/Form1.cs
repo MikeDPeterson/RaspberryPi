@@ -98,7 +98,7 @@ namespace TemperatureCharts
                 {
                     conn.Open();
 
-                    using ( SQLiteCommand cmd = new SQLiteCommand( "SELECT Id, tdatetime, sensorId, temperature FROM temperatureLog WHERE id > @param2 ORDER BY Id", conn ) )
+                    using ( SQLiteCommand cmd = new SQLiteCommand( "SELECT tl.Id, tl.tdatetime, s.sensorAddress, tl.temperature FROM temperatureLog tl join sensor s on tl.SensorId = s.Id WHERE tl.id > @param2 ORDER BY tl.Id", conn ) )
                     {
                         if ( rbLastX.Checked )
                         {
