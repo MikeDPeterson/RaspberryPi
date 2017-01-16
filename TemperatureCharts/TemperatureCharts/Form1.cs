@@ -77,7 +77,7 @@ namespace TemperatureCharts
             SetControlsEnabled();
 
             // backup every 4 hours
-            tmrBackupDatabase.Interval = (int)new TimeSpan( 4, 0, 0 ).TotalMilliseconds;
+            tmrBackupDatabase.Interval = (int)new TimeSpan( 0, 0, 15 ).TotalMilliseconds;
             tmrBackupDatabase.Enabled = true;
 
             UpdateChart();
@@ -98,7 +98,7 @@ namespace TemperatureCharts
                 {
                     conn.Open();
 
-                    using ( SQLiteCommand cmd = new SQLiteCommand( "SELECT tl.Id, tl.tdatetime, s.sensorAddress, tl.temperature FROM temperatureLog tl join sensor s on tl.SensorId = s.Id WHERE tl.id > @param2 ORDER BY tl.Id", conn ) )
+                    using ( SQLiteCommand cmd = new SQLiteCommand( "SELECT tl.Id, tl.tdatetime, s.sensorAddress, tl.temperature FROM temperatureLog tl join sensor s on tl.SensorId = s.Id WHERE tl.Id > @param2 ORDER BY tl.Id", conn ) )
                     {
                         if ( rbLastX.Checked )
                         {
@@ -108,7 +108,7 @@ namespace TemperatureCharts
                             startDateTime = DateTime.Now.AddHours( -hours );
                         }
 
-                        //cmd.Parameters.Add( new SQLiteParameter( "@param1", System.Data.DbType.DateTime ) { Value = startDateTime.ToUniversalTime() } );
+                    //    cmd.Parameters.Add( new SQLiteParameter( "@param1", System.Data.DbType.DateTime ) { Value = startDateTime.ToUniversalTime() } );
                         cmd.Parameters.Add( new SQLiteParameter( "@param2", System.Data.DbType.Int32 ) { Value = this.lastTemperatureDataId } );
                         using ( SQLiteDataReader sqlReader = cmd.ExecuteReader( System.Data.CommandBehavior.SingleResult ) )
                         {
